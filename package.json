@@ -5,6 +5,7 @@
   "main": "timepicker.js",
   "author": "YanagiEiichi (yanagieiichi@web-tinker.com)",
   "license": "MIT",
+  "repository": "jinkelajs/jinkela-timepicker",
   "scripts": {
     "prepublish": "babel timepicker.js -o timepicker.es5.js"
   },

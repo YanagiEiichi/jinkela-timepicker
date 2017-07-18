@@ -1,3 +1,3 @@
 ## Jinkela-TimePicker
 
-https://yanagieiichi.github.io/jinkela-timepicker/
+https://jinkelajs.github.io/jinkela-timepicker/

@@ -1,0 +1,27 @@
+<meta charset="utf-8" />
+<script src="https://cdn.jsdelivr.net/npm/jinkela@1.3.3/umd.js"></script>
+<script src="/tester.js"></script>
+<script src="/umd.js"></script>
+<body>
+<script>
+(async () => {
+
+  let tp = new TimePicker().to(document.body);
+  Tester.assert(tp.value === '00:00:00', 'tp.value must be an 00:00:00');
+
+  Tester.assert(tp.panel.element.parentNode === null, 'tp.panel must not in body');
+
+  tp.field.element.focus();
+
+  Tester.assert(tp.panel.element.parentNode === document.body, 'tp.panel must in body');
+
+  tp.panel.hours.list[6].element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  tp.panel.minutes.list[6].element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  tp.panel.seconds.list[6].element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+  Tester.assert(tp.value === '06:06:06', 'tp.value must be an 06:06:06');
+
+  Tester.feedback(true);
+
+})();
+</script>

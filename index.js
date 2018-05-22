@@ -1,13 +1,17 @@
-{
+define(() => {
 
+  // 选项
   class Item extends Jinkela {
-    beforeParse(params) {
-      if (params.text === void 0) params.text = (params.value < 10 ? '0' : '') + params.value;
+    init() {
+      if (typeof this.value === 'number') {
+        this.element.jinkela = this;
+        this.element.textContent = (this.value < 10 ? '0' : '') + this.value;
+      }
     }
-    get template() { return `<a href="JavaScript:" class="{state}">{text}</a>`; }
     get styleSheet() {
       return `
         :scope {
+          cursor: pointer;
           display: block;
           text-align: center;
           text-decoration: none;
@@ -18,11 +22,18 @@
             font-weight: 500;
             font-size: 16px;
           }
+          &:hover {
+            color: #20a0ff;
+          }
         }
       `;
     }
+    get state() { return this.element.classList.contains('active'); }
+    set state(state) { this.element.classList[state === 'active' ? 'add' : 'remove']('active'); }
+    get top() { return this.element.offsetTop; }
   }
 
+  // 孔洞
   class Aperture extends Jinkela {
     init() {
       if ('left' in this) this.element.style.left = this.left;
@@ -32,6 +43,7 @@
       return `
         :scope {
           position: absolute;
+          pointer-events: none;
           box-sizing: border-box;
           font-size: 16px;
           width: 36px;
@@ -47,8 +59,8 @@
     }
   }
 
+  // 列
   class Column extends Jinkela {
-    get tagName() { return 'ol'; }
     get styleSheet() {
       return `
         :scope {
@@ -65,52 +77,37 @@
         }
       `;
     }
-    beforeParse() {
-      this.lock = 0;
-      this.list = [];
-    }
-    beforeExtends() {
-      for (let i = 0; i < 3; i++) new Item({ text: '' }).to(this);
-      for (let i = 0; i < 3; i++)
-        for (let value = this.min; value <= this.max; value++) this.list.push(new Item({ value }).to(this));
-      for (let i = 0; i < 3; i++) new Item({ text: '' }).to(this);
-    }
     init() {
-      this.scroll();
       this.element.addEventListener('scroll', () => this.scroll());
       this.element.addEventListener('mouseleave', () => this.mouseleave());
       this.element.addEventListener('click', event => this.click(event));
     }
-    click({ target }) {
-      if (target.tagName !== 'A') return;
-      let value = +target.textContent;
-      if (value === value) this.value = value;
+    get list() {
+      let list = [];
+      for (let i = 0; i < 3; i++) new Item().to(this);
+      for (let i = 0; i < 3; i++) {for (let value = this.min; value <= this.max; value++) list.push(new Item({ value }).to(this));}
+      for (let i = 0; i < 3; i++) new Item().to(this);
+      Object.defineProperty(this, 'list', { value: list, configurable: true });
+      return list;
     }
-    mouseleave() {
-      this.value = this.value;
-    }
+    click({ target }) { if (target.jinkela instanceof Item) this.value = target.jinkela.value; }
+    mouseleave() { this.value = this.value; }
     scroll() {
       if (this.lock) return;
       let index = Math.round(this.element.scrollTop / 32);
       this.activeItem = this.list[index];
-      // clearTimeout(this.timer);
-      // this.timer = setTimeout(() => this.value = this.value, 200);
+      if (index === 0 || index === this.list.length - 1) this.value = this.value;
       if (typeof this.onChange === 'function') this.onChange();
-    }
-    setScrollTop(scrollTop) {
-      this.lock++;
-      this.element.scrollTop = scrollTop;
-      this.lock--;
     }
     get value() { return this.activeItem.value % (this.max + 1); }
     set value(index) {
       index += this.max + 1;
-      let scrollTop = index * 32;
-      this.setScrollTop(scrollTop);
-      if (this.element.scrollTop !== scrollTop) setTimeout(() => this.value = this.value, 16);
       this.activeItem = this.list[index];
+      this.lock = true;
+      this.element.scrollTop = this.activeItem.top - 32 * 3;
+      this.lock = false;
     }
-    get activeItem() { return this.$activeItem; }
+    get activeItem() { return this.$activeItem || this.list[0]; }
     set activeItem(item) {
       if (this.$activeItem === item) return;
       if (this.$activeItem) this.$activeItem.state = '';
@@ -119,52 +116,52 @@
     }
   }
 
-  class Hours extends Column {
-    get min() { return 0; }
-    get max() { return 23; }
-  }
-
-  class Minutes extends Column {
-    get min() { return 0; }
-    get max() { return 59; }
-  }
-
-  class Seconds extends Column {
-    get min() { return 0; }
-    get max() { return 59; }
-  }
-
-  class TimePickerPanel extends Jinkela {
-    beforeParse(params) {
-      let onChange = this.update.bind(this);
-      this.hours = new Hours({ onChange });
-      this.minutes = new Minutes({ onChange });
-      this.seconds = new Seconds({ onChange });
-    }
+  // 对话框
+  class Panel extends Jinkela {
     init() {
-      this.hours.to(this);
-      this.minutes.to(this);
-      this.seconds.to(this);
+      // 绑定一堆事件
+      this.element.addEventListener('click', event => (event.relatedTimePicker = this.binding));
+      // 初始化后代的三列
+      let onChange = this.change.bind(this);
+      this.hours = new Column({ min: 0, max: 23, onChange }).to(this);
+      this.minutes = new Column({ min: 0, max: 59, onChange }).to(this);
+      this.seconds = new Column({ min: 0, max: 59, onChange }).to(this);
+      // 初始化三个孔洞
       new Aperture({ left: '18px' }).to(this);
       new Aperture({ left: 0, right: 0 }).to(this);
       new Aperture({ right: '18px' }).to(this);
-      this.update();
     }
-    update() {
+    change() {
+      this.binding.change(this.value);
+    }
+    get value() {
       let args = [];
       if (this.hours) args.push(this.hours.value);
       if (this.minutes) args.push(this.minutes.value);
       if (this.seconds) args.push(this.seconds.value);
-      this.$value = args;
-      if (typeof this.onChange === 'function') this.onChange(args);
+      return args;
     }
-    get value() { return this.$value; }
     set value(value) {
       value = value || [];
-      this.$value = value;
       if ('0' in value) this.hours.value = +value[0];
       if ('1' in value) this.minutes.value = +value[1];
       if ('2' in value) this.seconds.value = +value[2];
+    }
+    updatePosition() {
+      let rect = this.binding.element.getBoundingClientRect();
+      this.element.style.top = rect.top + rect.height + 'px';
+      this.element.style.left = rect.left + 'px';
+    }
+    show() {
+      this.to(document.body);
+      this.updatePosition();
+      let click = event => {
+        if (event.relatedTimePicker === this.binding) return;
+        // 检测到是否点了自己，然后阻止操作
+        this.element.remove();
+        removeEventListener('click', click);
+      };
+      addEventListener('click', click);
     }
     get styleSheet() {
       return `
@@ -186,10 +183,11 @@
     }
   }
 
-  class TimePickerField extends Jinkela {
+  // 控件显示的内容
+  class Field extends Jinkela {
     set text(value) { this.element.value = value; }
     get text() { return this.element.value; }
-    get template() { return '<input placeholder="{placeholder}" readonly="readonly" />'; }
+    get template() { return '<input readonly="readonly" />'; }
     get styleSheet() {
       return `
         :scope {
@@ -214,60 +212,66 @@
     }
   }
 
+  // 入口
   class TimePicker extends Jinkela {
-    beforeParse(params) {
-      let onChange = this.change.bind(this);
-      params.placeholder = 'placeholder' in params ? params.placeholder : '请选择时间';
-      this.field = new TimePickerField(params);
-      this.panel = new TimePickerPanel({ onChange });
-      if (!('value' in params)) params.value = [ 0, 0, 0 ];
+    // 当获取焦点时需要显示的浮层
+    get panel() {
+      let value = new Panel({ binding: this });
+      Object.defineProperty(this, 'panel', { value, configurable: true });
+      return value;
     }
+    // 入口
     init() {
-      this.field.to(this);
-      this.panel.to(this);
-      this.update();
-      addEventListener('click', event => this.checkClose(event));
-      this.element.addEventListener('click', event => event.relatedTimePicker = this);
-      this.element.addEventListener('focus', () => this.element.className = 'active', true);
-      Object.defineProperty(this.element, 'value', { get: () => this.value, set: value => this.value = value });
+      // 初始化一波事件
+      this.element.addEventListener('click', event => (event.relatedTimePicker = this));
+      this.element.addEventListener('focus', this.focus.bind(this), true);
+
+      // 强行让对应的 DOM 元素也支持 value 属性（某些神奇的场景下会用到）
+      Object.defineProperty(this.element, 'value', { get: () => this.value, set: value => (this.value = value) });
+
+      // 初始化
+      if (!this.$hasValue) this.value = void 0;
     }
-    onChange() {}
-    checkClose(event) {
-      if (!this.element.className) return;
-      let { target } = event;
-      if (event.relatedTimePicker === this) return;
-      this.element.className = '';
+    focus() {
+      this.panel.show();
+      this.value = this.value;
     }
-    update() { this.field.text = this.value || this.defaultText || ''; }
+    onChange() { /* To Override */ }
+    updateText() {
+      this.field.text = this.value || this.defaultText || '';
+    }
     change() {
-      if (!this.panel) return;
-      this.update();
+      this.updateText();
       if (this.$value !== this.value) {
         this.$value = this.value;
         this.onChange();
       }
     }
-    set placeholder(value) { this.field.placeholder = value; }
-    get placeholder() { return this.field.placeholder; }
-    set starting(value) { this.panel.starting = value; }
-    get starting() { return this.panel.strting; }
     get value() {
       let value = this.panel.value;
       if (value == null) return value; // eslint-disable-line eqeqeq
       return value.join(':').replace(/\b\d\b/g, '0$&');
     }
-    set value(value) {
+    set value(value = this.defaultValue) {
+      // 处理传入的不明类型数据
       if (typeof value === 'string') value = value.match(/\d+/g);
       if (!(value instanceof Array)) value = [ 0, 0, 0 ];
+      // 双向更新
       this.panel.value = value;
-      this.update();
+      this.updateText();
+      this.$hasValue = true;
     }
+    get Field() { return Field; }
     get template() {
       return `
         <span>
+          <jkl-field ref="field"></jkl-field>
           <svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
-            <path d="M525 230 437 230 438 639 760 639 760 552 525 552Z"></path>
-            <path d="M512 42c-265 0-480 214-480 480 0 265 214 480 480 480s480-214 480-480C992 257 777 42 512 42zM512 915c-216 0-392-175-392-392C119 305 295 129 512 129c216 0 392 175 392 392C904 739 728 915 512 915z"></path>
+            <path d="
+              M525 230 437 230 438 639 760 639 760 552 525 552Z
+              M512 42c-265 0-480 214-480 480 0 265 214 480 480 480s480-214 480-480C992 257 777 42 512 42z
+              M512 915c-216 0-392-175-392-392C119 305 295 129 512 129c216 0 392 175 392 392C904 739 728 915 512 915z
+            "></path>
           </svg>
         </span>
       `;
@@ -281,8 +285,7 @@
           position: relative;
           display: inline-block;
           > div { display: none; }
-          &.active > input { border-color: #20a0ff; }
-          &.active > div { display: block; }
+          &:focus > input { border-color: #20a0ff; }
           > svg {
             position: absolute;
             width: 16px;
@@ -299,6 +302,6 @@
     }
   }
 
-  window.TimePicker = TimePicker;
+  return TimePicker;
 
-}
+});

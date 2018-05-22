@@ -1,3 +1,3 @@
 ## Jinkela-TimePicker
 
-https://jinkelajs.github.io/jinkela-timepicker/
+https://jinkelajs.github.io/jinkela-timepicker/example/

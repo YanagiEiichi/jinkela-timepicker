@@ -1,6 +1,6 @@
 {
   "name": "jinkela-timepicker",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A TimePicker Control on Jinkela",
   "main": "timepicker.js",
   "author": "YanagiEiichi (yanagieiichi@web-tinker.com)",

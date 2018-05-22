@@ -231,6 +231,7 @@ define(() => {
 
       // 初始化
       if (!this.$hasValue) this.value = void 0;
+      this.updateText();
     }
     focus() {
       this.panel.show();

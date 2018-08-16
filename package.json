@@ -8,13 +8,17 @@
   "repository": "jinkelajs/jinkela-timepicker",
   "scripts": {
     "lint": "eslint . --fix",
-    "test": "npm run prepublish && ui-tester-start tests",
+    "test": "npm run prepublish && ui-tester-start tests/*/*.html",
     "prepublish": "amd2umd index.js -n TimePicker > umd.js"
   },
   "devDependencies": {
     "eslint": "^4.2.0",
     "eslint-config-elemefe": "^0.3.0",
-    "amd2umd": "0.0.6",
+    "jinkela-1.2.x": "github:jinkelajs/jinkela#1.2.21",
+    "jinkela-1.3.x": "github:jinkelajs/jinkela#1.3.5",
     "ui-tester": "^1.1.4"
+  },
+  "dependencies": {
+    "amd2umd": "^0.0.6"
   }
 }

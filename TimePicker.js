@@ -163,12 +163,12 @@ var TimePicker;
         if (document.body.contains(this.element)) {
           this.updatePosition();
         } else {
-          removeEventListener('scroll', scroll);
+          removeEventListener('scroll', scroll, true);
           delete this.scroll;
         }
       };
       this.scroll = scroll;
-      addEventListener('scroll', scroll);
+      addEventListener('scroll', scroll, true);
     }
     show() {
       this.to(document.body);
@@ -210,7 +210,7 @@ var TimePicker;
     get styleSheet() {
       return `
         :scope {
-          width: 226px;
+          width: 100%;
           position: relative;
           border: 1px solid #bfcbd9;
           border-radius: 4px;
@@ -241,6 +241,7 @@ var TimePicker;
       Object.defineProperty(this, 'panel', { value, configurable: true });
       return value;
     }
+
     // 入口
     init() {
       // 初始化一波事件
@@ -254,6 +255,7 @@ var TimePicker;
       if (!this.$hasValue) this.value = void 0;
       this.updateText();
     }
+
     focus() {
       this.panel.show();
       this.value = this.value;
@@ -269,6 +271,10 @@ var TimePicker;
         this.onChange();
       }
     }
+
+    get width() { return this.element.getAttribute('width'); }
+    set width(value) { this.element.style.setProperty('width', value); }
+
     get value() {
       let value = this.panel.value;
       if (value == null) return value; // eslint-disable-line eqeqeq
@@ -283,6 +289,7 @@ var TimePicker;
       this.updateText();
       this.$hasValue = true;
     }
+
     get template() {
       return `
         <span>
@@ -300,6 +307,7 @@ var TimePicker;
     get styleSheet() {
       return `
         :scope {
+          width: 106px;
           font-size: 14px;
           font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, SimSun, sans-serif;
           -webkit-font-smoothing: antialiased;
